@@ -17,6 +17,8 @@ loc = str_locate(prin," ")
 prin = str_sub(prin,end = loc) %>% 
   str_squish() %>% unique()
 
+saveRDS(prin,"prin.rds")
+
 #secundarios
 sec = read_html(link.per) %>% 
   html_nodes(xpath = '//*[@id="mw-content-text"]/div/ul[7]/li/text()') %>% 
@@ -25,7 +27,9 @@ sec = read_html(link.per) %>%
 
 loc = str_locate(sec," ") 
 
-sec = str_sub(sec,end = loc) %>% str_squish()
+sec = str_sub(sec,end = loc) %>% str_squish() %>% unique()
+
+saveRDS(sec,"sec.rds")
 
 # geral
 per.ger = c(prin,sec)
@@ -94,12 +98,7 @@ download.scenes = function(link.scrpit,desc.script){
   return(ret)
 }
 
-#scripts = map2_df(transcripts,transcripts.title,download.scenes)
-
-scripts = tibble()
-for(i in 1:length(transcripts)){ #28
-  scripts = bind_rows(scripts,download.scenes(transcripts[i],transcripts.title[i]))
-}
+scripts = map2_df(transcripts,transcripts.title,download.scenes)
 
 scripts$episode = as.numeric(str_sub(scripts$ep,-2))
 scripts$season = as.numeric(str_sub(scripts$ep,1,-3))
@@ -112,30 +111,8 @@ saveRDS(scripts,"scripts.rds")
 #######################
 
 (qtd_lines = scripts %>% 
-  group_by(ep,desc.ep) %>% 
+  group_by(ep,season,episode,desc.ep) %>% 
   summarise(n=n()))
 
-qtd_lines %>%  ggplot(aes(x=ep,y=n))+geom_histogram(stat='identity')
-
-
-
-
-##########
-# SCENES #
-##########
-
-for(per in per.ger){
-  apos = grepl(paste0(per,"'s"),scenes)
-  per.bool = grepl(per,scenes)
-  
-  tb_scene[[per]] = ifelse(per.bool == F,apos,ifelse(apos==T,T,F))
-}
-
-
-eos = grepl("everyone",str_to_lower(scenes))
-
-for(eo in 1:length(eos)){
-  if(eos[eo]){
-    tb_scene[eo,prin] = rep(T,length(prin))
-  }
-}
+qtd_lines %>%  
+  ggplot(aes(x=episode,y=n))+geom_histogram(stat='identity') + facet_wrap(~season) 
