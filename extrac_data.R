@@ -1,13 +1,11 @@
-require(tidyverse)
-require(rvest)
-require(stringr)
-
 ###############
 # PERSONAGENS #
 ###############
 link.per = "https://pt.wikipedia.org/wiki/Lista_de_personagens_de_Friends"
 
-# principais
+# ---------- #
+# Principais #
+# ---------- #
 prin = read_html(link.per) %>% 
   html_nodes(xpath = '//*[@id="mw-content-text"]/div/ul/li/b/a') %>% 
   html_text()
@@ -19,20 +17,43 @@ prin = str_sub(prin,end = loc) %>%
 
 saveRDS(prin,"prin.rds")
 
-#secundarios
+# ----------- #
+# Secundarios #
+# ----------- #
 sec = read_html(link.per) %>% 
   html_nodes(xpath = '//*[@id="mw-content-text"]/div/ul[7]/li/text()') %>% 
   html_text() %>% 
   str_remove_all(" - ")
 
-loc = str_locate(sec," ") 
+loc = str_locate(sec," ")[,1] 
 
-sec = str_sub(sec,end = loc) %>% str_squish() %>% unique()
+sec.prin = str_sub(sec,end = loc) %>% str_squish()
+saveRDS(sec.prin,"sec.rds")
 
-saveRDS(sec,"sec.rds")
+# ----- #
+# Geral #
+# ----- #
+per.ger = c(prin,sec.prin)
 
-# geral
-per.ger = c(prin,sec)
+# ----------------------- #
+# Relação com personagens #
+# ----------------------- #
+aux = str_sub(sec,start = loc) %>% 
+  str_squish() %>% 
+  unique()
+
+sec = tibble(sec = sec.prin,
+             rel = NA)
+for(per in per.ger){
+  if(nrow(sec[str_detect(aux,per),2])!=0){
+    if(is.na(sec[str_detect(aux,per),2])){
+      sec[str_detect(aux,per),2] = per
+    }
+  }
+}
+
+saveRDS(sec,"rel_sec.rds")
+
 
 ###############
 # TRANSCRIPTS #
