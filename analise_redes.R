@@ -191,3 +191,41 @@ escal.multi = function(dataset=NULL){
 }
 
 #escal.multi(dataset) %>% ggplot(aes(x=x,y=y,label=pers)) + geom_text()
+
+
+##############
+# VIEW GRAPH #
+##############
+
+view_net = function(aux){ # aux = socio matriz
+  networkData <- tibble(src=integer(),target=integer(),value=integer())
+  
+  for(i in 1:ncol(aux)){
+    for(j in 1:ncol(aux)){
+      if(i>j){
+        networkData[nrow(networkData)+1,] = c(i-1,j-1,aux[i,j])
+      }
+    }
+  }
+  networkData = networkData %>% filter(value>0)
+  
+  networkData$value = networkData$value/100
+  
+  rel_sec = bind_rows(rel_sec,tibble(sec = prin, rel=prin)) %>% unique() %>% arrange(match(sec,colnames(aux)))
+  
+  for(i in 1:nrow(rel_sec)){
+    sec = rel_sec$sec[i]
+    rel = rel_sec %>% filter(sec == rel_sec$sec[i]) %>% .$rel
+    
+    rel2 = as.character(rel_sec[rel_sec$sec == rel,2])
+    
+    if(sec == rel2){
+      rel_sec[rel_sec$sec == rel,2] = rel
+    }
+  }
+  
+  return(forceNetwork(Links = as.data.frame(networkData), Source = "src", Target = "target", Value = "value",
+                      Nodes = as.data.frame(rel_sec), NodeID = "sec", Group = "rel", 
+                      opacity = 1, zoom = T, fontSize=15,
+                      clickAction = MyClickScript))
+}
